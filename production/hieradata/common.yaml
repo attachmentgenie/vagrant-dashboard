@@ -1,3 +1,15 @@
 ---
+classes:
+  - roles::dashboard
 profiles::bootstrap::firewall: true
 profiles::bootstrap::firewall::ensure: stopped
+profiles::dashboard::smashing: true
+profiles::runtime::ruby: true
+profiles::runtime::ruby::rubygems_package: rubygems-integration
+profiles::tools::compile: true
+profiles::website::nginx: true
+profiles::website::nginx::daemon_user: root
+profiles::website::nginx::vhosts:
+  smashing.dashboard.vagrant:
+    proxy:  'http://127.0.0.1:3030'
+
