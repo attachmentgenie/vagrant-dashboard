@@ -22,3 +22,9 @@
 [submodule "production/modules/gcc"]
 	path = production/modules/gcc
 	url = https://github.com/puppetlabs/puppetlabs-gcc.git
+[submodule "production/modules/nodejs"]
+	path = production/modules/nodejs
+	url = https://github.com/voxpupuli/puppet-nodejs.git
+[submodule "production/modules/apt"]
+	path = production/modules/apt
+	url = https://github.com/puppetlabs/puppetlabs-apt.git

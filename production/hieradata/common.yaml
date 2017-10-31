@@ -4,6 +4,8 @@ classes:
 profiles::bootstrap::firewall: true
 profiles::bootstrap::firewall::ensure: stopped
 profiles::dashboard::smashing: true
+profiles::runtime::nodejs: true
+profiles::runtime::nodejs::manage_repo: true
 profiles::runtime::ruby: true
 profiles::runtime::ruby::rubygems_package: rubygems-integration
 profiles::tools::compile: true
