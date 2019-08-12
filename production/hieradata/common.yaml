@@ -8,7 +8,6 @@ profiles::runtime::nodejs: true
 profiles::runtime::nodejs::manage_repo: true
 profiles::runtime::nodejs::npm_package_ensure: absent
 profiles::runtime::ruby: true
-profiles::runtime::ruby::rubygems_package: rubygems-integration
 profiles::tools::compile: true
 profiles::website::nginx: true
 profiles::website::nginx::daemon_user: root
