@@ -2,10 +2,12 @@
 # vi: set ft=ruby :
 
 require 'yaml'
-if File.file?('vagrant.yaml')
-  vagrant_config = YAML.load_file('vagrant.yaml')
-elsif File.file?('vagrant.yaml.dist')
-  vagrant_config = YAML.load_file('vagrant.yaml.dist')
+
+vagrant_root = File.expand_path(File.dirname(__FILE__))
+if File.file?(vagrant_root + '/vagrant.yaml')
+  vagrant_config = YAML.load_file(vagrant_root + '/vagrant.yaml')
+elsif File.file?(vagrant_root + '/vagrant.yaml.dist')
+  vagrant_config = YAML.load_file(vagrant_root + '/vagrant.yaml.dist')
 else
   raise "No vagrant config is provided."
 end
@@ -17,13 +19,9 @@ Vagrant.configure("2") do |config|
   if vagrant_config['required_plugins']
     plugins = vagrant_config['required_plugins']
   else
-    plugins = ['vagrant-hostmanager']
+    plugins = ['vagrant-hostmanager', 'vagrant-puppet-install']
   end
-  plugins.each do |plugin|
-    unless Vagrant.has_plugin?(plugin)
-      raise plugin << " has not been installed."
-    end
-  end
+  config.vagrant.plugins = plugins
 
   ###############################################################################
   # Plugin settings                                                             #
@@ -55,16 +53,6 @@ Vagrant.configure("2") do |config|
       version = :latest
     end
     config.puppet_install.puppet_version = version
-  end
-
-  if Vagrant.has_plugin?("vagrant-triggers")
-    config.trigger.after [:destroy] do
-      target = @machine.config.vm.hostname.to_s
-      puppetmaster = "puppetmaster"
-      if target != puppetmaster
-        system("vagrant ssh #{puppetmaster} -c 'sudo /opt/puppetlabs/bin/puppet cert clean #{target}'" )
-      end
-    end
   end
 
   ###############################################################################
@@ -107,7 +95,17 @@ Vagrant.configure("2") do |config|
           if node["memory"]
             v.memory = node["memory"]
           end
+          if node["disks"]
+            node["disks"].each_with_index do |disk, index|
+              medium_name = "#{node["name"]}_#{disk["name"]}.vdi"
+              unless File.exist?(medium_name)
+                v.customize ['createmedium', '--filename', medium_name, '--variant', 'Fixed', '--size', disk["size"] * 1024]
+              end
+                v.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', index +1 , '--device', 0, '--type', 'hdd', '--medium', medium_name]
+            end
+          end
         end
+
         srv.vm.network :private_network, ip: node["ip"]
         if node["aliases"]
           srv.hostmanager.aliases = node["aliases"]
@@ -119,19 +117,26 @@ Vagrant.configure("2") do |config|
         end
         case node["provision_type"]
         when 'puppet_agent'
+          if node["puppetmaster"]
+            puppetmaster = node["puppetmaster"]
+          else
+            puppetmaster = "puppetmaster.#{environment}.vagrant"
+          end
+
           srv.vm.provision "puppet_server" do |puppet|
             puppet.options       = "-t --environment #{environment}"
-            if node["puppetmaster"]
-              puppet.puppet_server = node["puppetmaster"]
-            else
-              puppet.puppet_server = "puppetmaster.#{environment}.vagrant"
-            end
+            puppet.puppet_server = puppetmaster
+          end
+
+          srv.trigger.after :destroy do |trigger|
+            trigger.name = "Cleaning puppet certificate"
+            trigger.run = {inline: "vagrant ssh puppetmaster -c 'sudo /opt/puppetlabs/bin/puppet cert clean #{node["hostname"]}'"}
           end
         else
           if node["hiera_path"]
-            srv.vm.synced_folder node["hiera_path"], "/etc/puppetlabs/code/environments/#{environment}/hieradata"
+            srv.vm.synced_folder node["hiera_path"], "/etc/puppetlabs/code/environments/#{environment}/data"
           else
-            srv.vm.synced_folder "#{environment}/hieradata", "/etc/puppetlabs/code/environments/#{environment}/hieradata"
+            srv.vm.synced_folder "#{environment}/data", "/etc/puppetlabs/code/environments/#{environment}/data"
           end
           srv.vm.provision :puppet do |puppet|
             puppet.environment = "#{environment}"
