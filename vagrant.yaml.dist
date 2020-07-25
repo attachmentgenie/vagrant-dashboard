@@ -2,6 +2,6 @@
 nodes:
     - name: smashing 
       hostname: smashing.dashboard.vagrant
-      box: bento/centos-7.6
+      box: bento/centos-7.8
       ip: 192.168.55.45
 virtualbox_group: '/Vagrant/dashboard'

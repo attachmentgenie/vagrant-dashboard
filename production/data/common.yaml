@@ -11,7 +11,6 @@ profiles::runtime::ruby: true
 profiles::tools::compile: true
 profiles::website::nginx: true
 profiles::website::nginx::daemon_user: root
-profiles::website::nginx::vhosts:
+profiles::website::nginx::proxies:
   smashing.dashboard.vagrant:
-    proxy:  'http://127.0.0.1:3030'
-
+    proxy_url: 'http://127.0.0.1:3030'
